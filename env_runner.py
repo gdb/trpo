@@ -3,6 +3,7 @@ import multiprocessing
 import os
 import shutil
 import signal
+import sys
 import tempfile
 
 import gym
@@ -67,10 +68,14 @@ class EnvRunner(object):
 def run_training((self, i, spec, training_dir)):
     signal.signal(signal.SIGINT, signal.SIG_IGN)
 
-    logger.info('i=%s id=%s total=%s', i, spec.id, len(self.selected_specs))
-    env = spec.make()
-    env.monitor.start(training_dir,
-                      video_callable=self.video_callable)
-    self.training_callable(env)
-    # Dump monitor info to disk
-    env.monitor.close()
+    try:
+        logger.info('i=%s id=%s total=%s', i, spec.id, len(self.selected_specs))
+        env = spec.make()
+        env.monitor.start(training_dir,
+                          video_callable=self.video_callable)
+        self.training_callable(env)
+        # Dump monitor info to disk
+        env.monitor.close()
+    except Exception as e:
+        c, v, s = sys.exc_info()
+        raise c, '{} (while processing {})'.format(v, spec.id), s
