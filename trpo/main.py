@@ -1,3 +1,5 @@
+import argparse
+
 from utils import *
 import numpy as np
 import random
@@ -12,6 +14,11 @@ import prettytensor as pt
 from space_conversion import SpaceConversionEnv
 import tempfile
 import sys
+
+logger = logging.getLogger()
+
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+import env_runner
 
 class TRPOAgent(object):
 
@@ -37,8 +44,8 @@ class TRPOAgent(object):
                 None, 2 * env.observation_space.shape[0] + env.action_space.n], name="obs")
         self.prev_obs = np.zeros((1, env.observation_space.shape[0]))
         self.prev_action = np.zeros((1, env.action_space.n))
-        self.action = action = tf.placeholder(tf.int64, shape=[None], name="action")  
-        self.advant = advant = tf.placeholder(dtype, shape=[None], name="advant")  
+        self.action = action = tf.placeholder(tf.int64, shape=[None], name="action")
+        self.advant = advant = tf.placeholder(dtype, shape=[None], name="advant")
         self.oldaction_dist = oldaction_dist = tf.placeholder(dtype, shape=[None, env.action_space.n], name="oldaction_dist")
 
         # Create neural network.
@@ -144,7 +151,7 @@ class TRPOAgent(object):
                 if self.end_count > 100:
                     break
 
-            if self.train: 
+            if self.train:
                 thprev = self.gf()
 
                 def fisher_vector_product(p):
@@ -182,23 +189,34 @@ class TRPOAgent(object):
                     exit(-1)
             i += 1
 
-training_dir = tempfile.mkdtemp()
-logging.getLogger().setLevel(logging.DEBUG)
+def run_trpo(env):
+    if not isinstance(env.observation_space, Box) or \
+       not isinstance(env.action_space, Discrete):
+        logger.info('Skipping: %s', env.spec.id)
+        return
 
-if len(sys.argv) > 1:
-    task = sys.argv[1]
-else:
-    task = "RepeatCopy-v0"
+    env = SpaceConversionEnv(env, Box, Discrete)
+    agent = TRPOAgent(env)
+    agent.learn()
 
-env = envs.make(task)
-env.monitor.start(training_dir,
-                  algorithm_id='trpo_with_prev')
+def complete(results):
+    return True
 
-env = SpaceConversionEnv(env, Box, Discrete)
+def main():
+    parser = argparse.ArgumentParser(description=None)
+    parser.add_argument('-b', '--base-dir', help='Set base dir.')
+    parser.add_argument('-v', '--verbose', action='count', dest='verbosity', default=0, help='Set verbosity.')
+    args = parser.parse_args()
 
-agent = TRPOAgent(env)
-agent.learn()
-env.monitor.close()
-gym.upload(training_dir)
+    if args.verbosity == 0:
+        logger.setLevel(logging.INFO)
+    elif args.verbosity >= 1:
+        logger.setLevel(logging.DEBUG)
 
-     
+    runner = env_runner.EnvRunner('trpo_with_prev', run_trpo, complete, base_dir=args.base_dir)
+    runner.run()
+
+    return 0
+
+if __name__ == '__main__':
+    sys.exit(main())
