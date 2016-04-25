@@ -78,4 +78,5 @@ def run_training((self, i, spec, training_dir)):
         env.monitor.close()
     except Exception as e:
         c, v, s = sys.exc_info()
-        raise c, '{} (while processing {})'.format(v, spec.id), s
+        # raise c, '{} (while processing {})'.format(v, spec.id), s
+        logger.error('[evaluation errored] {} (while processing {})'.format(v, spec.id))
