@@ -190,12 +190,11 @@ class TRPOAgent(object):
             i += 1
 
 def run_trpo(env):
+    env = SpaceConversionEnv(env, Box, Discrete)
     if not isinstance(env.observation_space, Box) or \
        not isinstance(env.action_space, Discrete):
         logger.info('Skipping: %s', env.spec.id)
         return
-
-    env = SpaceConversionEnv(env, Box, Discrete)
     agent = TRPOAgent(env)
     agent.learn()
 
