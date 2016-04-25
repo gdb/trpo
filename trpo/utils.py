@@ -11,7 +11,7 @@ tf.set_random_seed(seed)
 dtype = tf.float32
 
 def discount(x, gamma):
-    assert x.ndim >= 1
+    assert x.ndim >= 1, 'x.ndim = {}'.format(x.ndim)
     return scipy.signal.lfilter([1], [1, -gamma], x[::-1], axis=0)[::-1]
 
 def rollout(env, agent, max_pathlength, n_timesteps):
@@ -64,7 +64,7 @@ class LinearVF(object):
 
 
 def cat_sample(prob_nk):
-    assert prob_nk.ndim == 2
+    assert prob_nk.ndim == 2, 'prob_nk.ndim = {}'.format(prob_nk.ndim)
     N = prob_nk.shape[0]
     csprob_nk = np.cumsum(prob_nk, axis=1)
     out = np.zeros(N, dtype='i')
@@ -176,5 +176,3 @@ class dict2(dict):
     def __init__(self, **kwargs):
         dict.__init__(self, kwargs)
         self.__dict__ = self
-
-
